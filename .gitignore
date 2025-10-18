@@ -1,0 +1,60 @@
+# 编译产物
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# 日志文件
+*.log
+logs/
+
+# IDE配置文件
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 模型文件（太大，不上传到GitHub）
+*.pt
+*.pth
+*.onnx
+*.pb
+
+# 人脸图片（隐私数据，不上传）
+face-imgs/*.jpg
+face-imgs/*.jpeg
+face-imgs/*.png
+!face-imgs/.gitkeep
+
+# 人脸索引文件（包含用户数据）
+face_index.json
+
+# PyTorch缓存
+pytorch/
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.bak
+
+# 应用配置（可能包含敏感信息）
+application-*.properties
+!application.properties
+
