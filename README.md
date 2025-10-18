@@ -350,7 +350,7 @@ java -Xmx2048m -jar target/proj-boot-1.0-SNAPSHOT.jar
 
 - 查看控制台日志
 - 参考官方文档：http://doc.smartjavaai.cn/
-- 提交 Issue：[GitHub Issues](https://github.com/your-username/your-repo/issues)
+- 提交 Issue：[GitHub Issues](https://github.com/IceYuanyyy/Smart-Java-AI-Face/issues)
 
 ## 📝 开发说明
 
@@ -358,10 +358,10 @@ java -Xmx2048m -jar target/proj-boot-1.0-SNAPSHOT.jar
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-username/your-repo.git
+git clone https://github.com/IceYuanyyy/Smart-Java-AI-Face.git
 
 # 进入目录
-cd smart_java_ai_face
+cd Smart-Java-AI-Face
 
 # 编译
 mvn clean compile
@@ -395,17 +395,18 @@ logging.level.com.codeying=DEBUG
   - GitHub：https://github.com/SmartJavaAI
 - **PyTorch**：深度学习框架
 - **Spring Boot**：快速开发框架
+- **B站UP主**: 学长敲代码
 
 ## 👨‍💻 作者
 
-**CodeYing**
+**IceYuanyyy**
 
 如果这个项目对你有帮助，欢迎 Star ⭐️
 
 ## 📮 联系方式
 
-- 提交 Issue：[GitHub Issues](https://github.com/your-username/your-repo/issues)
-- 发起讨论：[GitHub Discussions](https://github.com/your-username/your-repo/discussions)
+- 提交 Issue：[GitHub Issues](https://github.com/IceYuanyyy/Smart-Java-AI-Face/issues)
+- 发起讨论：[GitHub Discussions](https://github.com/IceYuanyyy/Smart-Java-AI-Face/discussions)
 
 ## 🔄 更新日志
 
