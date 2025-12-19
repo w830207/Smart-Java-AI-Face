@@ -452,8 +452,10 @@ logging.level.com.codeying=DEBUG
 
 ## 📮 联系方式
 
-- 提交 Issue：[GitHub Issues](https://github.com/IceYuanyyy/Smart-Java-AI-Face/issues)
-- 发起讨论：[GitHub Discussions](https://github.com/IceYuanyyy/Smart-Java-AI-Face/discussions)
+如有问题或建议，欢迎通过以下方式联系：
+
+- 📧 Email: 2478686497@qq.com / ercurym86@gmail.com
+- 💬 GitHub Issues: [提交Issue](https://github.com/IceYuanyyy/Practice_Review/issues)
 
 ## 🔄 更新日志
 
