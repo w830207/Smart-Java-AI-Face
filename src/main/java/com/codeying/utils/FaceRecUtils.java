@@ -1,30 +1,60 @@
 package com.codeying.utils;
 
+import ai.djl.modality.cv.Image;
 import cn.smartjavaai.common.config.Config;
+import cn.smartjavaai.common.cv.SmartImageFactory;
+import cn.smartjavaai.common.entity.DetectionInfo;
+import cn.smartjavaai.common.entity.DetectionRectangle;
+import cn.smartjavaai.common.entity.DetectionResponse;
 import cn.smartjavaai.common.entity.R;
 import cn.smartjavaai.common.entity.face.FaceSearchResult;
 import cn.smartjavaai.common.enums.DeviceEnum;
+import cn.smartjavaai.common.enums.SimilarityType;
+import cn.smartjavaai.common.enums.face.LivenessStatus;
+import cn.smartjavaai.common.utils.ImageUtils;
 import cn.smartjavaai.face.config.FaceDetConfig;
 import cn.smartjavaai.face.config.FaceRecConfig;
+import cn.smartjavaai.face.config.LivenessConfig;
 import cn.smartjavaai.face.constant.FaceDetectConstant;
+import cn.smartjavaai.face.constant.LivenessConstant;
 import cn.smartjavaai.face.entity.FaceRegisterInfo;
 import cn.smartjavaai.face.entity.FaceSearchParams;
 import cn.smartjavaai.face.enums.FaceDetModelEnum;
 import cn.smartjavaai.face.enums.FaceRecModelEnum;
-import cn.smartjavaai.face.enums.SimilarityType;
+import cn.smartjavaai.face.enums.LivenessModelEnum;
 import cn.smartjavaai.face.factory.FaceDetModelFactory;
 import cn.smartjavaai.face.factory.FaceRecModelFactory;
+import cn.smartjavaai.face.factory.LivenessModelFactory;
 import cn.smartjavaai.face.model.facedect.FaceDetModel;
 import cn.smartjavaai.face.model.facerec.FaceRecModel;
+import cn.smartjavaai.face.model.liveness.LivenessDetModel;
 import cn.smartjavaai.face.vector.config.SQLiteConfig;
+import com.codeying.entity.LivenessDetectResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import nu.pattern.OpenCV;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
-import java.io.File;
+import java.util.List;
+
+import org.junit.BeforeClass;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.videoio.VideoCapture;
+import org.opencv.videoio.Videoio;
+
+import javax.swing.*;
 
 /**
  * 人脸识别工具类
@@ -56,6 +86,12 @@ public class FaceRecUtils {
     //设备类型
     public static DeviceEnum device = DeviceEnum.CPU;
 
+    @BeforeClass
+    public static void beforeAll() throws IOException {
+        //将图片处理的底层引擎切换为 OpenCV
+        SmartImageFactory.setEngine(SmartImageFactory.Engine.OPENCV);
+    }
+
     // ========== 👇 重要配置：首次运行请修改 👇 ==========
     /**
      * 模型文件存储路径
@@ -71,7 +107,7 @@ public class FaceRecUtils {
      * - Linux/Mac: "/home/user/models/smart_java_ai/"
      * - 相对路径: "smart_java_ai/" (模型文件放在项目根目录下)
      */
-    public static String MODAL_PATH = "smart_java_ai/";
+    public static String MODAL_PATH = "D:/BaiduNetdiskDownload/";
     // ========== 👆 重要配置：首次运行请修改 👆 ==========
 
     static {
@@ -282,6 +318,100 @@ public class FaceRecUtils {
         return faceRecModel;
     }
 
+    /**
+     * 获取活体检测模型
+     * @return
+     */
+    public LivenessDetModel getLivenessDetModel(){
+        LivenessConfig config = new LivenessConfig();
+        config.setModelEnum(LivenessModelEnum.IIC_FL_MODEL);
+        config.setDevice(device);
+        //需替换为实际模型存储路径
+        config.setModelPath(MODAL_PATH + "IIC_Fl.onnx");
+        //人脸活体阈值,可选,默认0.8，超过阈值则认为是真人，低于阈值是非活体
+        config.setRealityThreshold(LivenessConstant.DEFAULT_REALITY_THRESHOLD);
+        /*视频检测帧数，可选，默认10，输出帧数超过这个number之后，就可以输出识别结果。
+        这个数量相当于多帧识别结果融合的融合的帧数。当输入的帧数超过设定帧数的时候，会采用滑动窗口的方式，返回融合的最近输入的帧融合的识别结果。
+        一般来说，在10以内，帧数越多，结果越稳定，相对性能越好，但是得到结果的延时越高。*/
+        config.setFrameCount(LivenessConstant.DEFAULT_FRAME_COUNT);
+        //视频最大检测帧数
+        config.setMaxVideoDetectFrames(LivenessConstant.DEFAULT_MAX_VIDEO_DETECT_FRAMES);
+        //指定人脸检测模型
+        config.setDetectModel(getProFaceDetModel());
+        return LivenessModelFactory.getInstance().getModel(config);
+    }
+
+    private static LivenessDetModel staticLivenessDetModel = null;
+
+    /**
+     * 獲取活體檢測模型（靜態緩存，供 API 使用）
+     */
+    public static LivenessDetModel getStaticLivenessDetModel() {
+        if (staticLivenessDetModel != null) {
+            return staticLivenessDetModel;
+        }
+        LivenessConfig config = new LivenessConfig();
+        config.setModelEnum(LivenessModelEnum.IIC_FL_MODEL);
+        config.setDevice(device);
+        config.setModelPath(MODAL_PATH + "IIC_Fl.onnx");
+        config.setRealityThreshold(LivenessConstant.DEFAULT_REALITY_THRESHOLD);
+        config.setFrameCount(LivenessConstant.DEFAULT_FRAME_COUNT);
+        config.setMaxVideoDetectFrames(LivenessConstant.DEFAULT_MAX_VIDEO_DETECT_FRAMES);
+        config.setDetectModel(getProFaceDetModel());
+        staticLivenessDetModel = LivenessModelFactory.getInstance().getModel(config);
+        return staticLivenessDetModel;
+    }
+
+    /**
+     * 單張圖片活體檢測（供 API 調用）
+     * @param image 人臉圖片
+     * @return 活體檢測結果，若未檢測到人臉或失敗則 faceDetected 為 false
+     */
+    public static LivenessDetectResult livenessDetect(BufferedImage image) {
+        if (image == null) {
+            return new LivenessDetectResult(false, 0f, "圖片為空", false);
+        }
+        try {
+            LivenessDetModel model = getStaticLivenessDetModel();
+            SmartImageFactory factory = SmartImageFactory.getInstance();
+            Mat mat = bufferedImageToMat(image);
+            if (mat == null || mat.empty()) {
+                return new LivenessDetectResult(false, 0f, "圖片轉換失敗", false);
+            }
+            Image img = factory.fromMat(mat);
+            R<DetectionResponse> result = model.detect(img);
+            if (!result.isSuccess()) {
+                log.debug("活體檢測失敗：{}", result.getMessage());
+                return new LivenessDetectResult(false, 0f, result.getMessage() != null ? result.getMessage() : "檢測失敗", false);
+            }
+            var list = result.getData().getDetectionInfoList();
+            if (list == null || list.isEmpty()) {
+                return new LivenessDetectResult(false, 0f, "未檢測到人臉", false);
+            }
+            // 取第一個人臉的活體結果
+            var info = list.get(0);
+            var liveness = info.getFaceInfo().getLivenessStatus();
+            boolean live = liveness.getStatus() == LivenessStatus.LIVE;
+            float score = liveness.getScore();
+            String desc = liveness.getStatus().getDescription();
+            return new LivenessDetectResult(live, score, desc, true);
+        } catch (Exception e) {
+            log.error("活體檢測異常", e);
+            return new LivenessDetectResult(false, 0f, "檢測異常: " + e.getMessage(), false);
+        }
+    }
+
+    /**
+     * BufferedImage 轉 Mat（用於活體檢測）
+     */
+    private static Mat bufferedImageToMat(BufferedImage image) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        baos.flush();
+        MatOfByte mob = new MatOfByte(baos.toByteArray());
+        return Imgcodecs.imdecode(mob, Imgcodecs.IMREAD_COLOR);
+    }
+
     //=================================//=================================//=================================//=================================
     
     // 人脸信息缓存文件路径
@@ -451,4 +581,76 @@ public class FaceRecUtils {
     }
 
 
+    /**
+     * 摄像头活体检测（接收外部传入的摄像头/视频源）
+     * @param capture 已打开的摄像头或视频源，调用方负责创建与打开（如 new VideoCapture(0)）
+     *                注意：方法结束后会调用 capture.release() 释放资源
+     * 注意事项：如果视频比较卡，可以使用轻量的人脸检测模型
+     */
+    public void livenessDetectCamera(VideoCapture capture){
+        if (capture == null || !capture.isOpened()) {
+            System.out.println("No camera or video source: capture is null or not opened");
+            return;
+        }
+        try {
+            LivenessDetModel livenessDetModel = getLivenessDetModel();
+            OpenCV.loadShared();
+
+            double ratio =
+                    capture.get(Videoio.CAP_PROP_FRAME_WIDTH)
+                            / capture.get(Videoio.CAP_PROP_FRAME_HEIGHT);
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            int height = (int) (screenSize.height * 0.65f);
+            int width = (int) (height * ratio);
+            if (width > screenSize.width) {
+                width = screenSize.width;
+            }
+
+            Mat image = new Mat();
+            boolean captured = false;
+            for (int i = 0; i < 10; ++i) {
+                captured = capture.read(image);
+                if (captured) {
+                    break;
+                }
+
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ignore) {
+                    // ignore
+                }
+            }
+            if (!captured) {
+                JOptionPane.showConfirmDialog(null, "Failed to capture image from WebCam.");
+            }
+            ViewerFrame frame = new ViewerFrame(width, height);
+            SmartImageFactory factory = SmartImageFactory.getInstance();
+            Size size = new Size(width, height);
+
+            while (capture.isOpened()) {
+                if (!capture.read(image)) {
+                    break;
+                }
+                Mat resizeImage = new Mat();
+                Imgproc.resize(image, resizeImage, size);
+                Image img = factory.fromMat(resizeImage);
+                R<DetectionResponse> detectedResult = livenessDetModel.detect(img);
+                if(!detectedResult.isSuccess()){
+                    log.debug("识别失败：{}", detectedResult.getMessage());
+                    continue;
+                }
+                for(DetectionInfo detectionInfo : detectedResult.getData().getDetectionInfoList()){
+                    DetectionRectangle detectionRectangle = detectionInfo.getDetectionRectangle();
+                    Color color = detectionInfo.getFaceInfo().getLivenessStatus().getStatus() == LivenessStatus.LIVE ? Color.GREEN : Color.RED;
+                    String text = detectionInfo.getFaceInfo().getLivenessStatus().getStatus().getDescription() + ":" + detectionInfo.getFaceInfo().getLivenessStatus().getScore();
+                    ImageUtils.drawRectAndText(img, detectionRectangle, text);
+                }
+                frame.showImage(ImageUtils.toBufferedImage(img));
+            }
+            capture.release();
+            System.exit(0);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -179,6 +179,46 @@ public class FaceManageController {
     }
 
     /**
+     * 活體檢測接口（上傳單張圖片判斷是否為真人）
+     * @param requestData 請求體，需包含 base64Image（Base64 編碼的圖片，可帶 data:image/xxx;base64, 前綴）
+     * @return 活體檢測結果：live、score、statusDescription、faceDetected
+     */
+    @ResponseBody
+    @PostMapping("/liveness")
+    public ApiResponse<LivenessDetectResult> livenessDetect(@RequestBody Map<String, String> requestData) {
+        try {
+            log.info("收到活體檢測請求");
+
+            String base64Image = requestData.get("base64Image");
+            if (base64Image == null || base64Image.trim().isEmpty()) {
+                return ApiResponse.error("圖片數據不能為空");
+            }
+
+            String base64Data = base64Image;
+            if (base64Image.contains(",")) {
+                base64Data = base64Image.substring(base64Image.indexOf(",") + 1);
+            }
+            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+
+            BufferedImage image;
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
+                image = ImageIO.read(bis);
+            }
+
+            if (image == null) {
+                return ApiResponse.error("圖片格式無效");
+            }
+
+            LivenessDetectResult result = FaceRecUtils.livenessDetect(image);
+            log.info("活體檢測完成: live={}, score={}, faceDetected={}", result.isLive(), result.getScore(), result.isFaceDetected());
+            return ApiResponse.success(result);
+        } catch (Exception e) {
+            log.error("活體檢測失敗", e);
+            return ApiResponse.error("活體檢測失敗: " + e.getMessage());
+        }
+    }
+
+    /**
      * 获取所有已注册人脸列表
      * @return 人脸信息列表
      */
