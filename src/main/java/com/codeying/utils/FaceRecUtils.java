@@ -107,7 +107,7 @@ public class FaceRecUtils {
      * - Linux/Mac: "/home/user/models/smart_java_ai/"
      * - 相对路径: "smart_java_ai/" (模型文件放在项目根目录下)
      */
-    public static String MODAL_PATH = "smart_java_ai/";
+    public static String MODAL_PATH = "D:/BaiduNetdiskDownload/";
     // ========== 👆 重要配置：首次运行请修改 👆 ==========
 
     static {
